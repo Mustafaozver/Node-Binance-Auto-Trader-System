@@ -1,0 +1,1 @@
+Trader.Organizer.Traders = Object.assign(new Object(),{});

@@ -1,0 +1,68 @@
+<html>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.6/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<body>
+    <div class="container">
+        <div class="row">
+            <h1>Visualize Orderbook</h1>
+        </div>
+        <div class="row">
+            <input id="symbol" type="text" class="col-sm-2" placeholder="Symbol" value="BTCUSDT" />
+            <input id="limit" type="text" class="col-sm-2" placeholder="Limit" value="0" />
+			<button onclick="orderBook();">Visualize</button>
+        </div>
+        <div class="row">
+            <div class="col-sm-12" id="chartContainer1" style="height:500px;width:100%"></div>
+        </div>
+    </div>
+</body>
+<script>
+function orderBook(){
+	var ourRequest = new XMLHttpRequest();
+	var limit = document.getElementById("limit").value/1;
+	ourRequest.open('GET','https://api.binance.com/api/v1/depth?symbol=' + document.getElementById("symbol").value + (limit?('&limit=' + limit):""),true);
+	ourRequest.onload = function(){
+		var ourData = JSON.parse(ourRequest.responseText);
+		var data1 = [];
+		var data2 = [];
+		var totaliteA = 0;
+		var totaliteB = 0;
+		var limit = ourData["asks"].length;
+
+		for (var i=0;i<limit;i++){
+			var ask = parseFloat(ourData["asks"][i][1]*1);
+			totaliteA += ask;
+			data1.push(totaliteA);
+			data2.push((ourData["asks"][i][0]*1));
+		}
+
+		data1.reverse();
+		data2.reverse();
+
+		for (var i=0;i<limit;i++){
+			var bid = parseFloat(ourData["bids"][i][1]*1);
+			totaliteB += bid;
+			data1.push(totaliteB);
+			data2.push((ourData["bids"][i][0]*1));
+		}
+		Plotly.newPlot('chartContainer1',[{
+				//type: 'bar',
+				x: data1,
+				y: data2,
+				marker: {
+					color: '#0000FF',
+				},
+					orientation: 'h'
+			}],{
+                title: document.getElementById("symbol").value + " Graph"
+			});  
+        }
+        ourRequest.send();
+        
+    }
+    
+</script>
+</html>

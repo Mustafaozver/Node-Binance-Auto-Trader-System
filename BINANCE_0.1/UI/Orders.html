@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<HTML>
+	<HEAD>
+		<META charset="utf-8" />
+		<META name="viewport" content="width=device-width, initial-scale=1" />
+		<SCRIPT src="https://cdn.socket.io/socket.io-3.0.1.min.js"></SCRIPT>
+		<SCRIPT src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></SCRIPT>
+		<SCRIPT src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></SCRIPT>
+		<SCRIPT src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></SCRIPT>
+		<SCRIPT src="./JS.js"></SCRIPT>
+		<SCRIPT src="./JS"></SCRIPT>
+		<LINK rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+		<LINK rel="stylesheet" href="./CSS.css" />
+		<STYLE>
+		.OrderSide_S {color:red;}
+		.OrderSide_B {color:green;}
+		.orderno font {cursor:pointer;font-weight:bold;}
+		</STYLE>
+	</HEAD>
+	<BODY>
+		<FONT id="totalProfit">0</FONT>
+		<TABLE style="width:97%;">
+			<THEAD style="font-weight:bold;">
+				<TR>
+					<TD>Order NO</TD>
+					<TD>Side</TD>
+					<TD>Parity</TD>
+					<TD>Price</TD>
+					<TD>Moment Price</TD>
+					<TD>Price Percent</TD>
+					<TD>Quantity</TD>
+					<TD>USDT</TD>
+					<TD>Target Asset</TD>
+					<TD>Time</TD>
+				</TR>
+			</THEAD>
+			<TBODY id="orders">
+			</TBODY>
+		</TABLE>
+	<SCRIPT>
+//
+
+var CancelOrder = function(orderid,pair){
+	alert(orderid + " - " + pair);
+	ATA.EvalInCore(function(orderid,pair,who){
+		ATA.Trade.CancelOrder(orderid,pair[0],pair[1]);
+	},[orderid,pair.split("/"),ATA.Settings.ID]);
+};
+
+ATA.Setups.push(function(){
+	console.log("Started : " + ATA.Settings.ID);
+	Object.assign(ATA.UI,{
+		UpdateOrders:function(S){
+			$("TBODY#orders").html("");
+			var totalProfit = 0;
+			for(var key in S){
+				$("TBODY#orders").append("<TR class=\"OrderSide_" + S[key].S + "\" id=\"Order_" + S[key].ID + "\">"
+					+"<TD class=\"orderno\"><font onclick=\"CancelOrder(" + S[key].ID + ",'" + S[key].P + "');\">[X]</font> " + S[key].ID + "</TD>"
+					+"<TD class=\"side\">" + S[key].S + "</TD>"
+					+"<TD class=\"parity\">" + S[key].P + "</TD>"
+					+"<TD class=\"price\">" + S[key].Pr + "</TD>"
+					+"<TD class=\"Mprice\">" + S[key].MPr.toPrecision(6) + "</TD>"
+					+"<TD class=\"PricePercent\">% " + ((S[key].Pr/S[key].MPr-1)*100).toPrecision(2) + "</TD>"
+					+"<TD class=\"quantity\">" + S[key].Q + "</TD>"
+					+"<TD class=\"usdt\">$" + S[key].U.toFixed(2) + "</TD>"
+					+"<TD class=\"tusdt\">$" + S[key].Ta.toFixed(2) + "</TD>"
+					+"<TD class=\"time\">" + (new Date(S[key].T)).toGMTString().replace(" GMT","") + "</TD></TR>");
+				totalProfit += (S[key].Ta - S[key].U)*(S[key].S=="S"?1:-1);
+			}
+			$("#totalProfit").html("Total Target Profit = $ " + totalProfit.toFixed(2) + " ");
+		},
+	});
+	ATA.Loops.push(function(){
+		ATA.EvalInCore(function(who){
+			var S = [];
+			for (var key in Strategy.Operation.Orders.BUY){
+				var SPKeys = Scanner.SeperatePairKeys(Strategy.Operation.Orders.BUY[key].Pair);
+				S.push({
+					ID:Strategy.Operation.Orders.BUY[key].ID,
+					P:SPKeys.Currency + "/" + SPKeys.Base,
+					Pr:Strategy.Operation.Orders.BUY[key].Price-0,
+					MPr:Scanner.GetParityPUSDT(SPKeys.Currency)/Scanner.GetParityPUSDT(SPKeys.Base)-0,
+					Q:Strategy.Operation.Orders.BUY[key].Quantity-0,
+					U:Strategy.Operation.Orders.BUY[key].Quantity*Scanner.GetParityPUSDT(SPKeys.Currency)-0, // usdt
+					Ta:Strategy.Operation.Orders.BUY[key].Quantity*(Strategy.Operation.Orders.BUY[key].Price-0)*Scanner.GetParityPUSDT(SPKeys.Base)-0, // usdt
+					T:Strategy.Operation.Orders.BUY[key].Time-0,
+					S:"B"
+				});
+			}
+			for (var key in Strategy.Operation.Orders.SELL){
+				var SPKeys = Scanner.SeperatePairKeys(Strategy.Operation.Orders.SELL[key].Pair);
+				S.push({
+					ID:Strategy.Operation.Orders.SELL[key].ID,
+					P:SPKeys.Currency + "/" + SPKeys.Base,
+					Pr:Strategy.Operation.Orders.SELL[key].Price-0,
+					MPr:Scanner.GetParityPUSDT(SPKeys.Currency)/Scanner.GetParityPUSDT(SPKeys.Base)-0,
+					Q:Strategy.Operation.Orders.SELL[key].Quantity-0,
+					U:((Strategy.Operation.Orders.SELL[key].Quantity-0)*(Scanner.GetParityPUSDT(SPKeys.Currency)-0)), // usdt
+					Ta:Strategy.Operation.Orders.SELL[key].Quantity*(Strategy.Operation.Orders.SELL[key].Price-0)*Scanner.GetParityPUSDT(SPKeys.Base)-0, // usdt
+					T:Strategy.Operation.Orders.SELL[key].Time-0,
+					S:"S"
+				});
+			}
+			S.sort(function(x,y){
+				return x.T > y.T ? -1 : 1;
+			});
+			ATA.EvalInUI(function(S){
+				ATA.UI.UpdateOrders(S);
+			},[S],who);
+		},[ATA.Settings.ID]);
+	});
+});
+
+//
+	</SCRIPT>
+	<STYLE>
+
+
+
+	</STYLE>
+		<BUTTON class="btn btn-danger" onclick="window.location.reload();" style="z-index:999999;position:fixed;bottom:0;right:0;">Refresh</BUTTON>
+	</BODY>
+</HTML>

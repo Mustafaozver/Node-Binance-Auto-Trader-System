@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<HTML>
+	<HEAD>
+		<META charset="utf-8" />
+		<META name="viewport" content="width=device-width, initial-scale=1" />
+		<SCRIPT src="https://cdn.socket.io/socket.io-3.0.1.min.js"></SCRIPT>
+		<SCRIPT src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></SCRIPT>
+		<SCRIPT src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></SCRIPT>
+		<SCRIPT src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></SCRIPT>
+		<SCRIPT src="./JS.js"></SCRIPT>
+		<SCRIPT src="./JS"></SCRIPT>
+		<LINK rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+		<LINK rel="stylesheet" href="./CSS.css" />
+	</HEAD>
+	<BODY>
+	<TABLE style="width:100%;height:100%;position:absolute;left:0;top:0;">
+		<TR>
+			<TD>
+				<IFRAME onload="" id="console" src="about:blank" style="width:100%;height:100%;"></IFRAME>
+			</TD>
+		</TR>
+		<TR style="max-height:50%;">
+			<TD style="overflow:auto;">
+				<TEXTAREA id="command" style="font-size:12px;overflow:auto;width:100%;height:100%;font-family:consolas;background-color:#242436;color:#00b300;">
+
+
+/* Javascript */
+
+
+Answer = "OK";
+Answer = Trader.Organizer;
+
+console.clear();
+console.log("Command was executed.");
+
+/* By Mustafa */
+
+				</TEXTAREA>
+			</TD>
+		</TR>
+		<TR style="height:30px;">
+			<TD>
+				<button class="btn" onclick="_TRUN();">Run</button>
+				<button class="btn" onclick="console.clear();_TRUN();">RUN</button>
+				<button class="btn" onclick="console.clear();console.log(window.Answer);">Clear</button>
+				<br/>
+				<input type="checkbox" id="clearinterval" />
+				<button class="btn" onclick="TRun('console.clear();');">Konsol Temizle</button>
+				<button class="btn" onclick="EmergencySell();">Nakite Acil Kaçış (Market)</button>
+				<button class="btn" onclick="TRun('Asset.OrderEqualize();');">Nakite Acil Kaçış</button>
+				<button class="btn" onclick="TRun('Trader.Organizer.Traders={};');">Trader Reset</button>
+			</TD>
+		</TR>
+	</TABLE>
+	<SCRIPT>
+//
+
+ATA.Setups.push(function(){
+	console.log("Started : " + ATA.Settings.ID);
+	Object.assign(ATA.UI,{
+	});
+});
+
+ATA.Loops.push(function(){
+	if (document.all.clearinterval.checked) {
+		console.clear();
+	}
+});
+
+function TRun(oCode) {
+	var id = generate_ID();
+	ATA.Post({
+		success:function(data) {
+			if (data.Error) WriteAnswer(data);
+			else WriteAnswer(data.Answer);
+		}
+	},{
+		ID:id,
+		TODO:btoa("(function(){var Answer=false;try {\n\n\r\n"+oCode+"\n\n\r\n;}catch(e){return e.stack+\"\"}return Answer;})()")
+	});
+}
+
+function XTRun(oCode) {
+	oCode = "(" + oCode + ")();";
+	TRun(oCode);
+}
+
+function EmergencySell() {
+	XTRun(function(){
+		for (var key in Asset.Balances){
+			var quantity = Asset.Balances[key].Balance - Asset.Balances[key].onProcess;
+			var quantityUSD = quantity*Scanner.GetParityPUSDT(key)*0.99;
+			if (quantityUSD < 11) continue;
+			switch(Asset.Balances[key].Base) {
+				case "USDT":
+					quantity = toFixedPrice(quantityUSD/Scanner.GetParityPUSDT(key),Scanner.Pairs[key + "USDT"].stepSize-0);
+					ATA.Trade.MarketSell(key, "USDT", quantity);
+				break;
+				case "BTC":
+					quantity = toFixedPrice(quantityUSD/Scanner.GetParityPUSDT(key),Scanner.Pairs[key + "BTC"].stepSize-0);
+					ATA.Trade.MarketSell(key, "BTC", quantity);
+				break;
+			}
+		}
+	});
+}
+
+function _TRUN() {
+	var id = generate_ID();
+	ATA.Post({
+		success:function(data) {
+			if (data.Error) WriteAnswer(data);
+			else WriteAnswer(data.Answer);
+		}
+	},{
+		ID:id,
+		TODO:btoa("(function(){var Answer=false;try {\n\n\r\n"+document.all.command.value+"\n\n\r\n;}catch(e){return e.stack+\"\"}return Answer;})()")
+	});
+}
+
+function WriteAnswer(answer) {
+	var time = new Date();
+	console.log("System Answer : ",time);
+	console.log("Answer = ", window.Answer = answer);
+}
+
+function decodeObject(obj) {
+	switch(typeof obj) {
+		default:
+		case "boolean":
+			return "<BR/><DIV style=\"display:inline;color:" + (obj?"#00ff00":"#ff0000") + ";\">Bool <b>" + (obj) + "</b></DIV>";
+			break;
+		case "object":
+			var objStr = JSON.stringify(obj);
+			return "<BR/><DIV style=\"display:inline;color:#ff26ff;\">Object " + (objStr.length<200?objStr:"[LARGE]") + "</DIV>";
+			break;
+		case "string":
+			return "<DIV style=\"display:inline;color:#dfdfd0;font-style:italic;\">" + obj + "</DIV>";
+			break;
+		case "number":
+			return "<DIV style=\"display:inline;color:#FF0000;background-color:#0000FF50;\">" + obj + "</DIV>";
+			break;
+	}
+}
+ATA.Setups.push(function(){
+	ATA.log = console.log;
+	console.log = function(){
+		var date = new Date();
+		var arg = [];
+		for (var i=0;i<arguments.length;i++) arg.push(arguments[i]);
+		document.all.console.contentDocument.write("<BR/>\t[" + date.getTime() + "] " /*+ date*/ + " " + arg.map(function(x) {return decodeObject(x)}).join(" ") + "");
+		if (document.all.console.contentDocument.all.scroll.checked) document.all.console.contentDocument.body.scrollTop = document.all.console.contentDocument.body.scrollHeight - document.all.console.contentDocument.body.clientHeight;
+		ATA.log.apply(console,arg)
+	};
+	ATA.console_clear = console.clear;
+	console.clear = function(){
+		document.all.console.contentDocument.body.innerText = "";
+		document.all.console.contentDocument.write(""
+			+"<style>body {background-color:#131304;color:#008c00;}</style>"
+			+"<input type=\"checkbox\" checked id=\"scroll\" style=\"position:fixed;left:0;top:0;\" />"
+		+"");
+		ATA.console_clear();
+	};
+});
+
+ATA.Setups.push(function(){
+	document.all.console.contentDocument.write(""
+		+"<style>body {background-color:#131304;color:#00d900;}</style>"
+		+"<input type=\"checkbox\" checked id=\"scroll\" style=\"position:fixed;left:0;top:0;\" />"
+	+"");
+});
+
+//
+	</SCRIPT>
+	<STYLE>
+
+
+
+	</STYLE>
+	<BUTTON class="btn btn-danger" onclick="window.location.reload();" style="position:fixed;bottom:0;right:0;">Refresh</BUTTON>
+	</BODY>
+</HTML>

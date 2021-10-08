@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<HTML>
+	<HEAD>
+		<META charset="utf-8" />
+		<META name="viewport" content="width=device-width, initial-scale=1" />
+		<SCRIPT type="text/javascript" src="https://canvasjs.com/assets/script/canvasjs.stock.min.js"></SCRIPT>
+		<SCRIPT src="https://cdn.socket.io/socket.io-3.0.1.min.js"></SCRIPT>
+		<SCRIPT src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></SCRIPT>
+		<SCRIPT src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></SCRIPT>
+		<SCRIPT src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></SCRIPT>
+		<SCRIPT src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></SCRIPT>
+		<LINK rel="stylesheet" href="./CSS.css" />
+		<SCRIPT src="./JS.js"></SCRIPT>
+		<SCRIPT src="./JS"></SCRIPT>
+	</HEAD>
+	<BODY>
+		<TABLE style="height:100%;width:100%;position:absolute;left:0px;top:0px;background-color:#000000;color:#dddddd;">
+			<TR style="height:30px;"><TD><H3>Trader Robot for Binance By Mustafa ÖZVER</H3></TD></TR>
+			<TR>
+				<TD>
+					<TABLE style="height:100%;width:100%;">
+						<TR style="height:30px;border:1px solid red;">
+							<TD>
+								<BUTTON onclick="windowFrame(0);" class="windowTabButton">Chart</BUTTON>
+								<BUTTON onclick="windowFrame(1);" class="windowTabButton">Control</BUTTON>
+								<BUTTON onclick="windowFrame(2);" class="windowTabButton">Market</BUTTON>
+								<BUTTON onclick="windowFrame(3);" class="windowTabButton">Strategy</BUTTON>
+								<BUTTON onclick="windowFrame(4);" class="windowTabButton">Assets</BUTTON>
+								<BUTTON onclick="windowFrame(5);" class="windowTabButton">Orders</BUTTON>
+								<br/>
+								Asset = $<font id="asset">0.00</font>
+								Time = <font id="time">00:00</font>
+								Trade = <input type="checkbox" onclick="ATA.EvalInCore(function(data){ATA.Trade.Allow=data;console.log('Trade Allow = '+data);},[this.checked])" />
+							</TD>
+						</TR>
+						<TR>
+							<TD class="windowFrames">
+								<IFRAME id="windowFrame_0" src="./chart.html" class="windowFrame"></IFRAME>
+								<IFRAME id="windowFrame_1" src="./control.html" class="windowFrame"></IFRAME>
+								<IFRAME id="windowFrame_2" src="./market.html" class="windowFrame"></IFRAME>
+								<IFRAME id="windowFrame_3" src="./Strategy.html" class="windowFrame"></IFRAME>
+								<IFRAME id="windowFrame_4" src="./Assets.html" class="windowFrame"></IFRAME>
+								<IFRAME id="windowFrame_5" src="./Orders.html" class="windowFrame"></IFRAME>
+							</TD>
+						</TR>
+					</TABLE>
+				</TD>
+			</TR>
+		</TABLE>
+		<SCRIPT src="./JS.js"></SCRIPT>
+		<SCRIPT src="./JS"></SCRIPT>
+		<SCRIPT>
+//
+
+function windowFrame(n=0) {
+	var frames = document.getElementsByClassName("windowFrames")[0].children;
+	for (var i=0;i<frames.length;i++){
+		if (frames[i].id == ("windowFrame_"+n)) frames[i].style.display = "block";
+		else frames[i].style.display = "none";
+	}
+}
+
+ATA.Loops.push(function(){
+	ATA.EvalInCore(function(id){
+		var asset = Asset.TOTALUSDTCandle.Last().close.toFixed(2);
+		var time = (new Date()).getTime() - ATA.StartTime;
+		ATA.EvalInUI(function(asset,time){
+			document.all.asset.innerText = "" + asset;
+			document.all.time.innerText = FormatTime(time);
+		},[asset,time],id);
+	},[ATA.Settings.ID]);
+});
+
+ATA.RemininCloseTime = 20;
+ATA.Loops.push(function(){
+	ATA.RemininCloseTime--;
+	if (ATA.RemininCloseTime < 0) window.close();
+	ATA.EvalInCore(function(id){
+		ATA.RemininCloseTime = 10;
+		ATA.EvalInUI(function(){
+			ATA.RemininCloseTime = 10;
+		},[],id);
+	},[ATA.Settings.ID]);
+});
+
+ATA.CoreExit = function(){
+	ATA.EvalInCore(function(id){
+		ATA.EvalInUI(function(){
+			window.close();
+		},[],id);
+		process.reallyExit(0);
+	},[ATA.Settings.ID]);
+};
+
+windowFrame(0);
+
+//
+		</SCRIPT>
+		<BUTTON class="btn btn-danger" onclick="ATA.CoreExit();" style="z-index:999999;position:fixed;top:0;right:0;">[X]</BUTTON>
+	</BODY>
+</HTML>

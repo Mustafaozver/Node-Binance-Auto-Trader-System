@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<HTML>
+	<HEAD>
+		<META charset="utf-8" />
+		<META name="viewport" content="width=device-width, initial-scale=1" />
+		<SCRIPT src="https://cdn.socket.io/socket.io-3.0.1.min.js"></SCRIPT>
+		<SCRIPT src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></SCRIPT>
+		<SCRIPT src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></SCRIPT>
+		<SCRIPT src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></SCRIPT>
+		<SCRIPT src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></SCRIPT>
+		<SCRIPT src="./JS.js"></SCRIPT>
+		<SCRIPT src="./JS"></SCRIPT>
+		<LINK rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+		<LINK rel="stylesheet" href="./CSS.css" />
+	</HEAD>
+	<BODY>
+		<DIV style="width:100%;height:100%;position:absolute;left:0;top:0;" id="chartArea"></DIV>
+		<DIV class="card" style="width:300px;height:auto;position:absolute;border:1px solid #00000000;z-index:9999999999;background-color:#70707090;color:white;font-family:consolas;left:0;top:0;">
+			<INPUT onkeypress="if(window.event.keyCode == 13) ATA.UI.Follow(this.value);" style="color:white;background-color:#00000000;font-size:20px;border:none;" id="pairTitle" />
+			<TABLE>
+				<TR><TD>Rate</TD><TD>= <FONT id="price"></FONT></TD></TR>
+				<TR><TD>Selected</TD><TD>= <INPUT style="color:white;background-color:#00000000;max-width:80px;border:none;" type="number" id="selectedprice" value="0.0" /></TD></TR>
+				<TR><TD><BUTTON class="btn btn-light" onclick="document.all.tobuy.innerText = document.all.selectedprice.value;calculatePercentRate();">To Buy =></BUTTON></TD><TD><FONT id="tobuy">0.0</font></TD><TD><FONT id="percentRate"></FONT></TD></TR>
+				<TR><TD><BUTTON class="btn btn-light" onclick="document.all.tosell.innerText = document.all.selectedprice.value;calculatePercentRate();">To Sell =></BUTTON></TD><TD><FONT id="tosell">Infinity</FONT></TD></TR>
+			</TABLE>
+		</DIV>
+		<SCRIPT>
+//
+
+function calculatePercentRate(){
+	var tosell = eval(document.all.tosell.innerText);
+	var tobuy = eval(document.all.tobuy.innerText);
+	document.all.percentRate.innerText = "%" + ((tosell/tobuy-1)*100).toFixed(2);
+}
+
+ATA.Setups.push(function(){
+	ATA.Chart = LightweightCharts.createChart(document.all.chartArea,chartProperties);
+	ATA.CandleStick = ATA.Chart.addCandlestickSeries(chartconfig);
+	//
+	var data = [];
+	var last = 1400;
+	for (var i=500;i>0;i--){
+		var tempLast = 1400 + 4*Math.sin(i*3.14/100) + Math.random();
+		data.push({
+			open:last,
+			close:tempLast,
+			high:tempLast + Math.random(),
+			low:last - Math.random(),
+			time:(new Date()).getTime() - i*1000*15
+		});
+		last = tempLast;
+	}
+	//
+	ATA.CandleStick.setData(data);
+	Object.assign(ATA.UI,{
+		SetupChart:function(){
+			ATA.Chart.subscribeClick(function(param){
+				if (param.time) {
+					var price = param.seriesPrices.get(ATA.CandleStick).close;
+					document.all.selectedprice.value = "" + price.toPrecision(6) + "";
+				}
+			});
+			ATA.Chart.subscribeCrosshairMove(function(param){
+				if (!param.point) return;
+				if (param.time) {
+					var price = param.seriesPrices.get(ATA.CandleStick).close;
+					document.all.price.innerText = "" + price.toPrecision(6) + "";
+				}
+			});
+		},
+		Following:"",
+		Follow:function(pair){
+			if (!pair) pair = this.Following;
+			if (pair != this.Following) {
+				this.Following = pair;
+				ATA.EvalInCore(function(pair,who){
+					if (Scanner.Pairs[pair]) ATA.EvalInUI(function(pair){
+						ATA.Chart.removeSeries(ATA.CandleStick);
+						ATA.CandleStick = ATA.Chart.addCandlestickSeries(chartconfig);
+						ATA.UI.SetupChart();
+						ATA.CandleStick.setData(pair);
+					},[Scanner.Pairs[pair].CandleData.data],who);
+					else if (pair == "_") ATA.EvalInUI(function(pair){
+						ATA.Chart.removeSeries(ATA.CandleStick);
+						ATA.CandleStick = ATA.Chart.addCandlestickSeries(chartconfig);
+						ATA.UI.SetupChart();
+						ATA.CandleStick.setData(pair);
+					},[Asset.TOTALUSDTCandle.data],who);
+				},[pair,ATA.Settings.ID]);
+				document.all.pairTitle.value = pair;
+			} else {
+				ATA.EvalInCore(function(pair,who){
+					if (Scanner.Pairs[pair]) ATA.EvalInUI(function(pair){
+						ATA.CandleStick.update(pair);
+					},[Scanner.Pairs[pair].CandleData.Last()],who);
+					else if (pair == "_") ATA.EvalInUI(function(pair){
+						ATA.CandleStick.update(pair);
+					},[Asset.TOTALUSDTCandle.Last()],who);
+				},[pair,ATA.Settings.ID]);
+			}
+		},
+	});
+	ATA.UI.Follow("BTCUSDT"); // _ => asset
+	ATA.Loops.push(function(){
+		ATA.UI.Follow();
+	});
+});
+
+const chartconfig = {
+		downColor:			"#ff0000",
+		borderDownColor:	"#ff0000",
+		wickDownColor:		"#ff0000",
+		upColor:			"#0000ff",
+		borderUpColor:		"#0000ff",
+		wickUpColor:		"#0000ff",
+		symbol:				"Price",
+};
+
+const chartProperties = {
+	width:$(document).width(),
+	height:$(document).height(),
+	rightPriceScale: {
+		scaleMargins: {
+			top: 0.1,
+			bottom: 0.1,
+		},
+		mode: LightweightCharts.PriceScaleMode.Logarithmic,
+		borderColor: '#9980ff',
+	},
+	timeScale:{
+		rightOffset: 4,
+		timeVisible:true,
+		secondsVisible:false,
+		tickMarkFormatter: (time, tickMarkType, locale) => {
+			//time %= 1000*60*3*200;
+			//return time/1000/60/3;
+			var dt = new Date(time);
+			/*var month = dt.getMonth();
+			if (month < 10) month = "0"+month;
+			var date = dt.getDate();
+			if (date < 10) date = "0"+date;
+			var year = dt.getFullYear();*/
+			var hour = dt.getHours();
+			if (hour < 10) hour = "0"+hour;
+			var minute = dt.getMinutes();
+			if (minute < 10) minute = "0"+minute;
+			var seconds = dt.getSeconds();
+			if (seconds < 10) seconds = "0"+seconds;
+			return(/*month+"/"+date+"/"+year+" "+*/hour+":"+minute);
+        }
+	},
+	localization: {
+		dateFormat: 'yyyy'
+	},
+	layout: {
+		backgroundColor: '#0f0f1e',
+		textColor: '#dbdbea',
+		fontSize: 12,
+		fontFamily: 'verdana',
+	},
+	grid: {
+		vertLines: {
+			color: 'rgba(70, 130, 180, 0.3)',
+			style: 4,
+			visible: true,
+		},
+		horzLines: {
+			color: 'rgba(70, 130, 180, 0.3)',
+			style: 4,
+			visible: true,
+		},
+	},
+	crosshair: {
+		vertLine: {
+			color: '#9b9b8c',
+			width: 1,
+			style: 2,
+			visible: true,
+			labelVisible: false,
+		},
+		horzLine: {
+			color: '#9b9b8c',
+			width: 1,
+			style: 2,
+			visible: true,
+			labelVisible: true,
+		},
+		mode: 1,
+	},
+	handleScroll: {
+		mouseWheel: true,
+		pressedMouseMove: true,
+	},
+	handleScale: {
+		axisPressedMouseMove: true,
+		mouseWheel: true,
+		pinch: true,
+	}
+};
+
+//
+		</SCRIPT>
+		<STYLE>
+
+
+
+		</STYLE>
+		<BUTTON class="btn btn-danger" onclick="window.location.reload();" style="z-index:999999;position:fixed;bottom:0;right:0;">Refresh</BUTTON>
+	</BODY>
+</HTML>

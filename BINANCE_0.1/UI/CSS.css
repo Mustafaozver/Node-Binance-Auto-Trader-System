@@ -1,0 +1,9 @@
+body {
+	background-color:#e1e1e1;
+}
+
+Iframe.windowFrame {
+	width:97%;
+	height:100%;
+	display:none;
+}

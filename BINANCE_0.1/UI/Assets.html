@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<HTML>
+	<HEAD>
+		<META charset="utf-8" />
+		<META name="viewport" content="width=device-width, initial-scale=1" />
+		<SCRIPT src="https://cdn.socket.io/socket.io-3.0.1.min.js"></SCRIPT>
+		<SCRIPT src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></SCRIPT>
+		<SCRIPT src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></SCRIPT>
+		<SCRIPT src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></SCRIPT>
+		<SCRIPT src="./JS.js"></SCRIPT>
+		<SCRIPT src="./JS"></SCRIPT>
+		<LINK rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+		<LINK rel="stylesheet" href="./CSS.css" />
+		<STYLE>
+		#Balance_OTHERS_ {color:gray;}
+		.Balance_NEW {color:green;font-weight:bold;}
+		font._ud {display:none;}
+		
+		#Balance_BTC {color:red;font-weight:bold;}
+		#Balance_ETH {color:red;font-weight:bold;}
+		#Balance_BNB {color:red;font-weight:bold;}
+		
+		#Balance_TRY {color:blue;font-weight:bold;}
+		#Balance_USDT {color:blue;font-weight:bold;}
+		#Balance_BUSD {color:blue;font-weight:bold;}
+		#Balance_DAI {color:red;font-weight:bold;}
+		#Balance_RUB {color:brown;font-weight:bold;}
+		#Balance_UAH {color:brown;font-weight:bold;}
+		#Balance_BRL {color:brown;font-weight:bold;}
+		#Balance_AUD {color:brown;font-weight:bold;}
+		
+		
+		</STYLE>
+	</HEAD>
+	<BODY>
+		<TABLE style="width:97%;">
+			<THEAD>
+				<TR>
+					<TD>Name</TD>
+					<TD>USDT</TD>
+					<TD>Balance</TD>
+					<TD>Process</TD>
+				</TR>
+			</THEAD>
+			<TBODY id="balances">
+				<TR id="Balance_OTHERS_" class="Balance_NEW"><TD>OTHERS<font class="_ud"></font></TD><TD class="usdt">0</TD><TD class="balance">0</TD><TD class="Process">0</TD></TR>
+				<TR id="Balance_TRY" class="Balance_NEW"><TD>TRY<font class="_ud"></font></TD><TD class="usdt">0</TD><TD class="balance">0</TD><TD class="Process">0</TD></TR>
+				<TR id="Balance_USDT" class="Balance_NEW"><TD>USDT<font class="_ud"></font></TD><TD class="usdt">0</TD><TD class="balance">0</TD><TD class="Process">0</TD></TR>
+				<TR id="Balance_BTC" class="Balance_NEW"><TD>BTC<font class="_ud"></font></TD><TD class="usdt">0</TD><TD class="balance">0</TD><TD class="Process">0</TD></TR>
+				<TR id="Balance_ETH" class="Balance_NEW"><TD>ETH<font class="_ud"></font></TD><TD class="usdt">0</TD><TD class="balance">0</TD><TD class="Process">0</TD></TR>
+				<TR id="Balance_BNB" class="Balance_NEW"><TD>BNB<font class="_ud"></font></TD><TD class="usdt">0</TD><TD class="balance">0</TD><TD class="Process">0</TD></TR>
+			</TBODY>
+		</TABLE>
+	<SCRIPT>
+//
+
+ATA.Setups.push(function(){
+	window.counter = 0;
+	console.log("Started : " + ATA.Settings.ID);
+	Object.assign(ATA.UI,{
+		UpdateAssets:function(S){
+			var _ud = (new Date()).getTime();
+			for(var key in S){
+				if($("#Balance_" + key).length > 0) {
+					$("#Balance_" + key).children("td.usdt").html("$ "+S[key].U.toFixed(2));
+					$("#Balance_" + key).children("td.balance").html(S[key].B.toPrecision(6));
+					$("#Balance_" + key).children("td.Process").html(S[key].P.toPrecision(6));
+					$("#Balance_" + key + " font._ud").html(""+_ud);
+				} else {
+					$("TBODY#balances").append("<TR id=\"Balance_" + key + "\" class=\"Balance_NEW\"><TD>"+key+"<font class=\"_ud\">"+_ud+"</font></TD><TD class=\"usdt\">0</TD><TD class=\"balance\">0</TD><TD class=\"Process\">0</TD></TR>");
+				}
+				$.map($(".Balance_NEW"), function(elem, count){
+					if (eval($(elem).find("._ud").html()) === _ud) {
+						//$(elem).find("._ud").html(_ud);
+						$(elem).show();
+						if (counter%2 == 1) $(elem).css({opacity: '0.7'}, "slow");
+						else $(elem).css({opacity: '1.0'}, "slow");
+					} else $(elem).hide();
+				});
+				/*$("TBODY#balances TR").sort(function(a,b){
+					var av = parseFloat($(a).children("td.usdt").html());
+					var bv = parseFloat($(b).children("td.usdt").html());
+					return av > bv ? 1 : -1;
+					return 0;
+				}).appendTo("TBODY#balances");*/
+			}
+		},
+	});
+	setTimeout(function(){
+		$("TBODY#balances").append("<TR style=\"border-top:1px solid black;\"><TD>&nbsp;</TD></TR>");
+	},10000);
+	ATA.Loops.push(function(){
+		counter++;
+		ATA.EvalInCore(function(who){
+			var S = {OTHERS_:{B:0,P:0,U:0}};
+			var DefaultAssets = ["USDT","TRY","BTC","ETH","BNB","DAI","BUSD"];
+			for(var key in Asset.Balances) {
+				 if (Asset.Balances[key].Asset_ASUSDT > 10 || DefaultAssets.indexOf(key) > -1) S[key] = {
+					B:Asset.Balances[key].Balance,
+					P:Asset.Balances[key].onProcess,
+					U:Asset.Balances[key].Asset_ASUSDT
+				}; else if (Asset.Balances[key].Asset_ASUSDT < 10) {
+					S.OTHERS_.U += Asset.Balances[key].Asset_ASUSDT;
+					continue;
+				}
+			}
+			ATA.EvalInUI(function(S){
+				ATA.UI.UpdateAssets(S);
+			},[S],who);
+		},[ATA.Settings.ID]);
+	});
+});
+
+//
+	</SCRIPT>
+	<STYLE>
+
+
+
+	</STYLE>
+		<BUTTON class="btn btn-danger" onclick="window.location.reload();" style="z-index:999999;position:fixed;bottom:0;right:0;">Refresh</BUTTON>
+	</BODY>
+</HTML>

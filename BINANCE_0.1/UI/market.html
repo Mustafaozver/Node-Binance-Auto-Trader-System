@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<HTML>
+	<HEAD>
+		<META charset="utf-8" />
+		<META name="viewport" content="width=device-width, initial-scale=1" />
+		<SCRIPT src="https://cdn.socket.io/socket.io-3.0.1.min.js"></SCRIPT>
+		<SCRIPT src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></SCRIPT>
+		<SCRIPT src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></SCRIPT>
+		<SCRIPT src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></SCRIPT>
+		<SCRIPT src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></SCRIPT>
+		<SCRIPT src="./JS.js"></SCRIPT>
+		<SCRIPT src="./JS"></SCRIPT>
+		<LINK rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+		<LINK rel="stylesheet" href="./CSS.css" />
+	</HEAD>
+	<BODY>
+	<TABLE>
+		<TR>
+			<TD><H3>Market</H3></TD>
+			<TD></TD>
+			<TD><H3>Price</H3></TD>
+			<TD></TD>
+			<TD><H3>Percentage</H3></TD>
+		</TR>
+		<TR valign="top" style="vertical-align:top;">
+			<TD>
+				<INPUT id="pair" value="BTC/USDT" /> Price = <font id="price"></font><BR/>
+				<INPUT id="qty" type="number" value="0" /> Cost = <font id="cost"></font><BR/>
+				<INPUT id="qty1" type="number" value="12" /> 1/Cost = <font id="cost1"></font><BR/>
+				Balance : <font id="balance1"></font><BR/>
+				Balance : <font id="balance2"></font><BR/>
+				<BR/><BR/>
+				<BUTTON onclick="BUY();" class="btn btn-success">BUY</BUTTON>&nbsp;
+				<BUTTON onclick="SELL();" class="btn btn-danger">SELL</BUTTON>
+			</TD>
+			<TD style="background-color:#46463700;width:20px;">&nbsp;
+			</TD>
+			<TD>
+				Price = <INPUT id="orderprice" type="number" value="0" /><BR/><BR/>
+				<BUTTON onclick="BUY_PRICE();" class="btn btn-success">BUY</BUTTON>&nbsp;
+				<BUTTON onclick="SELL_PRICE();" class="btn btn-danger">SELL</BUTTON><BR/><BR/>
+			</TD>
+			<TD style="background-color:#46463700;width:20px;">&nbsp;
+			</TD>
+			<TD>
+				Percent = % <INPUT style="width:80px;" id="percent_price" type="number" value="0.35" /><BR/>
+				Continiously = <input type="checkbox" id="continue" />
+				<TABLE>
+					<TR><TD><BUTTON onclick="BUY_PRICE_PERCENT();" class="btn btn-success">BUY PER</BUTTON></TD><TD><font id="price_percent_buy">0</font></TD></TR>
+					<TR><TD><BUTTON onclick="SELL_PRICE_PERCENT();" class="btn btn-danger">SELL PER</BUTTON></TD><TD><font id="price_percent_sell">0</font></TD></TR>
+				</TABLE>
+				<BUTTON onclick="BUYSELL_PRICE_PERCENT();" class="btn btn-success">BUYSELL PER</BUTTON><BR/>
+			</TD>
+		</TR>
+	</TABLE>
+	<DIV id="answer"></DIV>
+	<SCRIPT>
+//
+
+ATA.Setups.push(function(){
+	setInterval(function(){
+		if (document.all.continue.checked) {
+			BUYSELL_PRICE_PERCENT();
+		}
+	},10000);
+});
+
+function BUYSELL_PRICE_PERCENT() {
+	BUY_PRICE_PERCENT();
+	setTimeout(function(){
+		SELL_PRICE_PERCENT();
+	},500);
+}
+
+function BUY_PRICE_PERCENT() {
+	ATA.EvalInCore(function(pair,qty,price,who){
+		ATA.Trade.Buy(pair[0],pair[1],qty,price);
+		ATA.EvalInUI(function(pair,price){
+			document.all.answer.innerText = "BUY Price => " + pair.join("/") + " on " + price;
+		},[pair,price],who);
+	},[document.all.pair.value.split("/"),document.all.qty.value,document.all.price_percent_buy.innerText,ATA.Settings.ID]);
+}
+
+function SELL_PRICE_PERCENT() {
+	ATA.EvalInCore(function(pair,qty,price,who){
+		ATA.Trade.Sell(pair[0],pair[1],qty,price);
+		ATA.EvalInUI(function(pair,price){
+			document.all.answer.innerText = "SELL Price => " + pair.join("/") + " on " + price;
+		},[pair,price],who);
+	},[document.all.pair.value.split("/"),document.all.qty.value,document.all.price_percent_sell.innerText,ATA.Settings.ID]);
+}
+
+function BUY_PRICE() {
+	ATA.EvalInCore(function(pair,qty,price,who){
+		ATA.Trade.Buy(pair[0],pair[1],qty,price);
+		ATA.EvalInUI(function(pair,price){
+			document.all.answer.innerText = "BUY Price => " + pair.join("/") + " on " + price;
+		},[pair,price],who);
+	},[document.all.pair.value.split("/"),document.all.qty.value,document.all.orderprice.value,ATA.Settings.ID]);
+}
+
+function SELL_PRICE() {
+	ATA.EvalInCore(function(pair,qty,price,who){
+		ATA.Trade.Sell(pair[0],pair[1],qty,price);
+		ATA.EvalInUI(function(pair,price){
+			document.all.answer.innerText = "SELL Price => " + pair.join("/") + " on " + price;
+		},[pair,price],who);
+	},[document.all.pair.value.split("/"),document.all.qty.value,document.all.orderprice.value,ATA.Settings.ID]);
+}
+
+function BUY() {
+	ATA.EvalInCore(function(pair,qty,who){
+		ATA.Trade.MarketBuy(pair[0],pair[1],qty);
+		ATA.EvalInUI(function(pair){
+			document.all.answer.innerText = "BUY Market => " + pair.join("/") + "";
+		},[pair],who);
+	},[document.all.pair.value.split("/"),document.all.qty.value,ATA.Settings.ID]);
+}
+
+function SELL() {
+	ATA.EvalInCore(function(pair,qty,who){
+		ATA.Trade.MarketSell(pair[0],pair[1],qty);
+		ATA.EvalInUI(function(pair){
+			document.all.answer.innerText = "SELL Market => " + pair.join("/") + "";
+		},[pair],who);
+	},[document.all.pair.value.split("/"),document.all.qty.value,ATA.Settings.ID]);
+}
+
+ATA.Setups.push(function(){
+	console.log("Started : " + ATA.Settings.ID);
+	Object.assign(ATA.UI,{
+		UpdatePrice:function(pair,balance1,balance2){
+			var price = pair.BUY/2 + pair.SELL/2;
+			var ma = pair.CandleData.data.slice(-1)[0].Params.OHLC4;
+			var percent = document.all.percent_price.value/1/100 + 1;
+			if (price) document.all.price.innerText = price.toPrecision(5);
+			else price = eval(document.all.price.innerText)/1;
+			document.all.price_percent_buy.innerText = (ma/percent).toPrecision(5);
+			document.all.price_percent_sell.innerText = (ma*percent).toPrecision(5);
+			document.all.cost.innerText = (document.all.qty.value/1*price).toPrecision(5);
+			document.all.cost1.innerText = ((document.all.qty1.value/1)/price).toPrecision(5);
+			document.all.balance1.innerText = "[" + balance1.Currency + "] => " + (balance1.Balance - balance1.onProcess).toPrecision(6) + " ( $" + balance1.Asset_ASUSDT.toFixed(2) + ")";
+			document.all.balance2.innerText = "[" + balance2.Currency + "] => " + (balance2.Balance - balance2.onProcess).toPrecision(6) + " ( $" + balance2.Asset_ASUSDT.toFixed(2) + ")";
+		},
+		
+	});
+	ATA.Loops.push(function(){
+		ATA.EvalInCore(function(pair,who){
+			if (pair.length == 1) pair = [pair[0],Asset.Balances[pair[0]].Base];
+			if (pair[1] == "") pair[1] = Asset.Balances[pair[0]].Base;
+			if (Scanner.Pairs[pair.join("")]) ATA.EvalInUI(function(pair,balance1,balance2){
+				ATA.UI.UpdatePrice(pair,balance1,balance2);
+			},[Scanner.Pairs[pair.join("")],Asset.Balances[pair[0]],Asset.Balances[pair[1]]],who);
+		},[document.all.pair.value.split("/"),ATA.Settings.ID]);
+	});
+});
+
+//
+	</SCRIPT>
+	<STYLE>
+
+
+
+	</STYLE>
+		<BUTTON class="btn btn-danger" onclick="window.location.reload();" style="z-index:999999;position:fixed;bottom:0;right:0;">Refresh</BUTTON>
+	</BODY>
+</HTML>
